@@ -6,6 +6,7 @@ import java.io.BufferedReader;
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileReader;
+import java.io.InputStreamReader;
 import java.io.IOException;
 import java.net.URI;
 
@@ -155,7 +156,7 @@ public class SoccerPlayerAnalyzer extends Configured implements Tool {
         }
 
         // Extract the domain
-        URI uri = new URI(key.toString());
+	URI uri = new URI(key.toString());
         String domain = uri.getHost();
         domain = domain.startsWith("www.") ? domain.substring(4) : domain;
 
@@ -207,10 +208,9 @@ public class SoccerPlayerAnalyzer extends Configured implements Tool {
             totalPlayerCount++;
           } else {
             if (wordFreq.get(content) == null)
-              if (wordFreq.get(content) == null)
-                wordFreq.put(content, new CountingLong());
-              else
-                wordFreq.get(content).incr();
+              wordFreq.put(content, new CountingLong());
+            else
+              wordFreq.get(content).incr();
           }
         }
 
@@ -344,10 +344,42 @@ public class SoccerPlayerAnalyzer extends Configured implements Tool {
       configFile = args[1];
 
     // For this example, only look at a single text file.
-    String inputPath = "s3n://aws-publicdatasets/common-crawl/parse-output/segment/1341690166822/textData-01666";
+    // String inputPath = "s3n://aws-publicdatasets/common-crawl/parse-output/segment/1341690166822/textData-01666";
  
     // Switch to this if you'd like to look at all text files.  May take many minutes just to read the file listing.
-  //String inputPath = "s3n://aws-publicdatasets/common-crawl/parse-output/segment/*/textData-*";
+    // String inputPath = "s3n://aws-publicdatasets/common-crawl/parse-output/segment/*/textData-*";
+
+
+    // Creates a new job configuration for this Hadoop job.
+    JobConf job = new JobConf(this.getConf());
+
+    job.setJarByClass(SoccerPlayerAnalyzer.class);
+
+    // =+=+ find files from the list 
+    String segmentListFile = "s3n://aws-publicdatasets/common-crawl/parse-output/valid_segments.txt";
+
+    FileSystem fsInput = FileSystem.get(new URI(segmentListFile), job);
+    BufferedReader reader = new BufferedReader(new InputStreamReader(fsInput.open(new Path(segmentListFile))));
+
+    String segmentId;
+
+    int i = 0;
+    while ((segmentId = reader.readLine()) != null) {
+        if (i == 0) { // FIXME: only processing the first segment to save time
+            String inputPath = "s3n://aws-publicdatasets/common-crawl/parse-output/segment/"+segmentId+"/textData-*";
+            FileInputFormat.addInputPath(job, new Path(inputPath));
+        }
+        i++;
+    }
+    // =+=+
+
+/*
+    // =+=+ single file
+    String inputPath = "s3n://aws-publicdatasets/common-crawl/parse-output/segment/1341690166822/textData-01666";
+    FileInputFormat.addInputPath(job, new Path(inputPath));
+    FileInputFormat.setInputPathFilter(job, SampleFilter.class);
+    // =+=+
+*/
 
     // Read in any additional config parameters.
     if (configFile != null) {
@@ -355,15 +387,10 @@ public class SoccerPlayerAnalyzer extends Configured implements Tool {
       this.getConf().addResource(configFile);
     }
 
-    // Creates a new job configuration for this Hadoop job.
-    JobConf job = new JobConf(this.getConf());
-
-    job.setJarByClass(ExampleTextWordCount.class);
-
     // Scan the provided input path for ARC files.
-    LOG.info("setting input path to '"+ inputPath + "'");
-    FileInputFormat.addInputPath(job, new Path(inputPath));
-    FileInputFormat.setInputPathFilter(job, SampleFilter.class);
+    // LOG.info("setting input path to '"+ inputPath + "'");
+    // FileInputFormat.addInputPath(job, new Path(inputPath));
+    // FileInputFormat.setInputPathFilter(job, SampleFilter.class);
 
     // Delete the output path directory if it already exists.
     LOG.info("clearing the output path at '" + outputPath + "'");
@@ -381,12 +408,15 @@ public class SoccerPlayerAnalyzer extends Configured implements Tool {
     // Set which InputFormat class to use.
     job.setInputFormat(SequenceFileInputFormat.class);
 
+    job.setMapOutputKeyClass(IntWritable.class);
+    job.setMapOutputValueClass(Text.class);
+
     // Set which OutputFormat class to use.
     job.setOutputFormat(TextOutputFormat.class);
 
     // Set the output data types.
     job.setOutputKeyClass(Text.class);
-    job.setOutputValueClass(LongWritable.class);
+    job.setOutputValueClass(Text.class);
 
     // Set which Mapper and Reducer classes to use.
     job.setMapperClass(SoccerPlayerAnalyzer.SoccerPlayerAnalyzerMapper.class);

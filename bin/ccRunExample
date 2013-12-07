@@ -98,8 +98,8 @@ if [ "${RUN_TYPE}" = "AmazonEMR" ]; then
 
   # We've found that a single, high-memory instance works well for the master,
   # which runs the JobTracker
-  MASTER_TYPE="m1.large"   # consider using MASTER_TYPE="m2.4xlarge"
-  CORE_TYPE="m1.large"     # consider using CORE_TYPE="m2.2xlarge"
+  MASTER_TYPE="m2.4xlarge"   # consider using MASTER_TYPE="m2.4xlarge"
+  CORE_TYPE="m2.2xlarge"     # consider using CORE_TYPE="m2.2xlarge"
 
   # We've found the 'c1.xlarge' instance type to be most efficient for EMR
   # jobs - though we are open to suggestions!
@@ -137,7 +137,7 @@ if [ "${RUN_TYPE}" = "AmazonEMR" ]; then
     --arg "s3n://${EMR_OUTPUT_PATH}" \
     --instance-group master --instance-type "${MASTER_TYPE}" --instance-count 1 \
     --instance-group core   --instance-type "${CORE_TYPE}"   --instance-count 1 \
-    --instance-group task   --instance-type "${TASK_TYPE}"   --instance-count ${INSTANCES} --bid-price ${BID}
+    --instance-group task   --instance-type "${TASK_TYPE}"   --instance-count ${INSTANCES}
   echo ""
 
   set +e
@@ -154,7 +154,7 @@ if [ "${RUN_TYPE}" = "AmazonEMR" ]; then
     --arg "s3n://${EMR_OUTPUT_PATH}" \
     --instance-group master --instance-type "${MASTER_TYPE}" --instance-count 1 \
     --instance-group core   --instance-type "${CORE_TYPE}"   --instance-count 1 \
-    --instance-group task   --instance-type "${TASK_TYPE}"   --instance-count ${INSTANCES} --bid-price ${BID})
+    --instance-group task   --instance-type "${TASK_TYPE}"   --instance-count ${INSTANCES})
 
   RC=$?
 
